@@ -4,8 +4,7 @@ import os
 from math import isclose
 from enum import Enum
 from itertools import cycle
-from peer import Peer
-from simulator import Simulator
+from simulator import *
 
 # Seed for random number generator
 seed = 42
@@ -58,20 +57,20 @@ argparser.add_argument("--alpha", "-a", default=0.35, type=float,
                        help="Fraction of hash power belonging to attacker")
 
 argparser.add_argument("--adversary_type", "-adv", default="none", type=str,
-                       choices=[adv.value for adv in AdversaryType],
+                       choices=["none", "selfish", "stubborn"],
                        help="Type of adversary, choose from (none, selfish, stubborn)")
 
 # Parse arguments
 args = argparser.parse_args()
 
 # Extract arguments
+n = args.peers
+edges = args.edges
 z = args.slowpeers
 t = args.time_limit
 Ttx = args.txn_interarrival
 Tk = args.mining_time
-n = args.peers
 seed = args.seed
-edges = args.edges
 max_txns = args.max_txns
 max_blocks = args.max_blocks
 verbose = args.verbose

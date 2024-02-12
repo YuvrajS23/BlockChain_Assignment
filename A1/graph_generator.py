@@ -11,7 +11,7 @@ def generate_random_graph(num_nodes):
 
     # Add edges to achieve desired degree distribution
     for node in G.nodes():
-        degree = random.randint(3, 6)
+        degree = random.randint(1, 2)
         while G.degree(node) < degree:
             # Choose a random node to connect to
             neighbor = random.choice(list(G.nodes()))
@@ -20,15 +20,17 @@ def generate_random_graph(num_nodes):
             if neighbor != node and not G.has_edge(node, neighbor):
                 if G.degree(neighbor) < 6:
                     G.add_edge(node, neighbor)
-
     return G
 
 # Number of nodes in the graph
-num_nodes = 400
+num_nodes = 100
 
 # Generate the random graph
 random_graph = generate_random_graph(num_nodes)
 is_connected = nx.is_connected(random_graph)
+while not is_connected:
+    random_graph = generate_random_graph(num_nodes)
+    is_connected = nx.is_connected(random_graph)
 num_edges = random_graph.number_of_edges()
 print(is_connected, num_edges)
 # Visualize the graph (optional)

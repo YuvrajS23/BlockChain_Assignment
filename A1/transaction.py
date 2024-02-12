@@ -1,12 +1,17 @@
-class Transaction:
-    counter = 0
+from utils import *
 
+class Transaction:
     def __init__(self, timestamp, sender, receiver, coins):
-        self.id = Transaction.counter
-        Transaction.counter += 1
-        self.sender = sender
-        self.receiver = receiver
-        self.amount = coins
+        # id: unique txn id
+        global txn_counter
+        self.id = txn_counter # int
+        txn_counter += 1
+        # coins transferred from sender to receiver
+        self.sender = sender    # Peer
+        self.receiver = receiver    # Peer
+        # amount: no of coins
+        self.amount = coins # int
+        # timestamp at which txn was created
         self.timestamp = timestamp
 
     def get_name(self):
