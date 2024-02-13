@@ -3,8 +3,7 @@ class Blockchain:
     def __init__(self):
         # initialize every blockchain with a copy of genesis block
         # pointer to genesis block in this blockchain
-        global global_genesis
-        self.genesis = global_genesis.clone()
+        self.genesis = G.global_genesis.clone()
         # pointer to the last block in the blockchain
         self.current_block = self.genesis
 

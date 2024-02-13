@@ -29,23 +29,21 @@ class Peer:
 
     def __init__(self):
         # unique id for every block
-        global Ttx , Tk, total_peers, peer_counter, LOW_HASH_POWER, HIGH_HASH_POWER
-        print("Total peers:", total_peers)
-        self.id = peer_counter
-        peer_counter += 1
+        self.id = G.peer_counter
+        G.peer_counter += 1
         # balances[i] stores current balance for peer with id i
         # initialize balances of all peers with 0
-        self.balances = [0] * total_peers
-        print(Ttx)
-        assert Ttx > 0
-        assert Tk > 0
+        self.balances = [0] * G.total_peers
+        # print(self.id)
+        assert G.Ttx > 0
+        assert G.Tk > 0
         # no of peers connected to this
         self.degree = 0
         # avg of expo dist = 1/lambda
         # distributions to sample txn interarrival time and block mining time
-        self.txn_interarrival_time = random.expovariate(1.0 / Ttx)
+        self.txn_interarrival_time = random.expovariate(1.0 / G.Ttx)
         # uniform distribution to select a peer
-        self.unif_dist_peer = random.randint(0, total_peers - 1)
+        self.unif_dist_peer = random.randint(0, G.total_peers - 1)
         # uniform distribution to select a real no between 0 and 1
         self.unif_rand_real = random.uniform(0, 1)
 
@@ -58,14 +56,13 @@ class Peer:
         # create hash power distribution: 50% with low hash power (0.1) 
         # and remaining 50% with high hash power (0.5)
         # fraction of the entire hash power
-        self.hash_power = LOW_HASH_POWER if self.unif_rand_real < 0.5 else HIGH_HASH_POWER
+        self.hash_power = G.LOW_HASH_POWER if self.unif_rand_real < 0.5 else G.HIGH_HASH_POWER
 
     # update hash power to normalized value and initialize block mining distribution
     def initialize_block_mining_distribution(self, hash_power):
-        global Tk
         self.hash_power = hash_power
-        # more hash power: less Tk
-        self.block_mining_time = random.expovariate(hash_power / Tk)
+        # more hash power: less G.Tk
+        self.block_mining_time = random.expovariate(hash_power / G.Tk)
 
     # returns the name of this peer
     def get_name(self):
@@ -76,20 +73,20 @@ class Peer:
         return self.degree
 
     # creates a link between peer a and peer b
-    def add_edge(self, a, b, os):   # Peer a, Peer b, ostream os
+    def add_edge(self, b):   # Peer self, Peer b, ostream os
         # write undirected edge to file
-        os.write(f"{a.id + 1} {b.id + 1}\n")
+        print(f"Edge between peers: {self.id + 1} {b.id + 1}\n")
 
         # increase the degree
-        a.degree += 1
+        self.degree += 1
         b.degree += 1
 
-        # add b in a's adj list
-        ab = Link(b, a.is_fast)
-        a.adj.append(ab)
+        # add b in self's adj list
+        ab = Link(b, self.is_fast)
+        self.adj.append(ab)
 
-        # add a in b's adj list
-        ba = Link(a, b.is_fast)
+        # add self in b's adj list
+        ba = Link(self, b.is_fast)
         b.adj.append(ba)
 
     # ================== TRANSACTION =============================
@@ -114,11 +111,11 @@ class Peer:
         txn = None
         if coins > 0:
             # todo: check if uniform distribution is correct for sampling receiver & no of coins
-            receiver = random.randint(0, Peer.total_peers - 1)
+            receiver = random.randint(0, G.total_peers - 1)
             while receiver == self.id:
-                receiver = random.randint(0, Peer.total_peers - 1)
+                receiver = random.randint(0, G.total_peers - 1)
 
-            txn = Transaction(sim.current_timestamp, self, sim.peers[receiver], coins)
+            txn = Transaction(sim.current_timestamp, self, G.peers[receiver], coins)
 
             # todo: add transaction in transaction/recv pool
             self.recv_pool.add(txn.id)
@@ -137,7 +134,7 @@ class Peer:
         for link in self.adj:
             if link.peer.id == source.id:
                 continue  # source already has the txn, loop-less forwarding
-            delay = link.get_delay(TRANSACTION_SIZE)
+            delay = link.get_delay(G.TRANSACTION_SIZE)
             ev = ReceiveTransaction(delay, self, link.peer, txn)
             sim.add_event(ev)
 
@@ -160,8 +157,7 @@ class Peer:
     # ================== BLOCK =============================
 
     def validate_block(self, block, custom_balances):
-        global max_size
-        if block.size > max_size:
+        if block.size > G.max_size:
             return False
         balances_copy = custom_balances[:]
         for txn in block.txns:
@@ -173,7 +169,6 @@ class Peer:
 
     # generate new block: equivalent of mining a block and add corresponding event
     def generate_new_block(self, sim):
-        global TRANSACTION_SIZE, max_size
         generate_invalid = random.uniform(0, 1) < sim.invalid_block_prob
         block = Block(self)
         block.set_parent(self.blockchain.current_block)
@@ -181,7 +176,7 @@ class Peer:
         balances_copy = self.balances[:]
         if generate_invalid:
             for txn in self.txn_pool:
-                if block.size + TRANSACTION_SIZE > max_size:
+                if block.size + G.TRANSACTION_SIZE > G.max_size:
                     if not is_invalid:
                         block.add(txn)
                         is_invalid = True
@@ -193,7 +188,7 @@ class Peer:
                 block.add(txn)
             return block
         for txn in self.txn_pool:
-            if block.size + TRANSACTION_SIZE > max_size:
+            if block.size + G.TRANSACTION_SIZE > G.max_size:
                 break
             if self.validate_txn(txn, balances_copy):
                 block.add(txn)
@@ -202,9 +197,8 @@ class Peer:
         return block
 
     def schedule_next_block(self, sim):
-        global Tk
         self.next_mining_block = self.generate_new_block(sim)
-        miningTime = random.expovariate(self.hash_power / Tk)
+        miningTime = random.expovariate(self.hash_power / G.Tk)
         self.next_mining_event = BroadcastMinedBlock(miningTime, self)
         sim.add_event(self.next_mining_event)
 
@@ -250,7 +244,7 @@ class Peer:
                 self.balances[txn.receiver.id] += txn.amount
                 if txn in self.txn_pool:
                     self.txn_pool.remove(txn)
-            self.balances[block.owner.id] += MINING_FEE
+            self.balances[block.owner.id] += G.MINING_FEE
             self.blockchain.current_block = block
 
     def delete_invalid_free_blocks(self, block, sim):
@@ -288,7 +282,7 @@ class Peer:
         for txn in block.txns:
             cur_balances[txn.sender.id] -= txn.amount
             cur_balances[txn.receiver.id] += txn.amount
-        cur_balances[block.owner.id] += MINING_FEE
+        cur_balances[block.owner.id] += G.MINING_FEE
 
         # recursive call to child blocks
         for child in self.free_block_parents[block.id]:
@@ -302,7 +296,7 @@ class Peer:
         for txn in block.txns:
             cur_balances[txn.sender.id] += txn.amount
             cur_balances[txn.receiver.id] -= txn.amount
-        cur_balances[block.owner.id] -= MINING_FEE
+        cur_balances[block.owner.id] -= G.MINING_FEE
 
     def receive_block(self, sim, sender, block):
         chain_it = block.id in self.chain_blocks.keys()
@@ -334,7 +328,7 @@ class Peer:
         branch_block = block.parent  # add the new block as a child of branch block
 
         # balances to update in case longest chain changes
-        current_balance_change = [0] * Peer.total_peers
+        current_balance_change = [0] * G.total_peers
         # txns to add to the txn pool in case longest chain changes
         txns_to_add = []
         # find lca
@@ -342,7 +336,7 @@ class Peer:
             current_block = Blockchain.backward(current_block, current_balance_change, txns_to_add)
 
         # balances to update in case longest chain changes
-        branch_balance_change = [0] * Peer.total_peers
+        branch_balance_change = [0] * G.total_peers
         # txns to remove from the txn pool in case longest chain changes
         txns_to_remove = []
         while branch_block.depth > current_block.depth:
@@ -353,8 +347,7 @@ class Peer:
             branch_block = Blockchain.backward(branch_block, branch_balance_change, txns_to_remove)
 
         # current_balance_change = balances just before block insertion point
-        global total_peers
-        for i in range(total_peers):
+        for i in range(G.total_peers):
             current_balance_change[i] += self.balances[i] - branch_balance_change[i]
 
         blocks_to_add = set()
@@ -422,25 +415,23 @@ class Peer:
 
     # output the blockchain to a stream
     def export_blockchain(self, os):
-        global total_peers
-        total_blocks = [0] * total_peers
+        total_blocks = [0] * G.total_peers
         deepest_block = self.blockchain.genesis
         self.traverse_blockchain(self.blockchain.genesis, os, deepest_block, total_blocks)
 
     # output the final statistics to a file
     def export_stats(self, sim, os):
-        global total_peers
         fake = io.StringIO()
         deepest_block = self.blockchain.genesis
-        total_blocks = [0] * total_peers
+        total_blocks = [0] * G.total_peers
         self.traverse_blockchain(self.blockchain.genesis, fake, deepest_block, total_blocks)
 
-        blocks_in_chain = [0] * total_peers
+        blocks_in_chain = [0] * G.total_peers
         while deepest_block.id != self.blockchain.genesis.id:
             blocks_in_chain[deepest_block.owner.id] += 1
             deepest_block = deepest_block.parent
 
         os.write("id,chain_blocks,generated_blocks,is_fast,hash_power\n")
-        for i in range(total_peers):
+        for i in range(G.total_peers):
             os.write(f"{i + 1},{blocks_in_chain[i]},{total_blocks[i]},{int(self.is_fast)},{self.hash_power}\n")
 

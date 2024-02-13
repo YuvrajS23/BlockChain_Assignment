@@ -3,9 +3,8 @@ from utils import *
 class Transaction:
     def __init__(self, timestamp, sender, receiver, coins):
         # id: unique txn id
-        global txn_counter
-        self.id = txn_counter # int
-        txn_counter += 1
+        self.id = G.txn_counter # int
+        G.txn_counter += 1
         # coins transferred from sender to receiver
         self.sender = sender    # Peer
         self.receiver = receiver    # Peer

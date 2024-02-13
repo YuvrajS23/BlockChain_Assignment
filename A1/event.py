@@ -41,9 +41,9 @@ class ForwardTransaction(Event):
         self.txn = txn      # transaction
 
     def run(self, sim):
-        # if self.peer.id != self.source.id:
-        #     sim.log(f"{self.peer.get_name()} forwards transaction {self.txn.get_name()} received from {self.source.get_name()}")
-        self.peer.forward_transaction(sim, self.source, self.txn)   # forward_transaction func in Peer class
+        if self.peer.id != self.source.id:
+            # sim.log(f"{self.peer.get_name()} forwards transaction {self.txn.get_name()} received from {self.source.get_name()}")
+            self.peer.forward_transaction(sim, self.source, self.txn)   # forward_transaction func in Peer class
 
 
 class ReceiveTransaction(Event):
@@ -76,9 +76,9 @@ class ForwardBlock(Event):
         self.block = block  # block
 
     def run(self, sim):
-        # if self.peer.id != self.source.id:
-        #     sim.log(f"{self.peer.get_name()} forwards block {self.block.get_name()} received from {self.source.get_name()}")
-        self.peer.forward_block(sim, self.source, self.block)    # forward_block func in Peer class
+        if self.peer.id != self.source.id:
+            # sim.log(f"{self.peer.get_name()} forwards block {self.block.get_name()} received from {self.source.get_name()}")
+            self.peer.forward_block(sim, self.source, self.block)    # forward_block func in Peer class
 
 
 class ReceiveBlock(Event):

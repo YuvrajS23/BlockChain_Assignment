@@ -20,7 +20,7 @@ class Simulator:
         self.Ttx = Ttx_
         self.Tk = Tk_
         self.edges = edges_
-        self.current_timestamp = START_TIME
+        self.current_timestamp = G.START_TIME
         self.invalid_txn_prob = invalid_txn_prob_
         self.invalid_block_prob = invalid_block_prob_
         self.verbose = verbose_
@@ -28,13 +28,11 @@ class Simulator:
         self.zeta = zeta_
         self.adversary = adversary_
         self.alpha = alpha_
-        global max_size, global_genesis, total_peers, Ttx, Tk
-        max_size = MAX_BLOCK_SIZE
-        global_genesis = Block(None)
-        global_genesis.set_parent(None)
-        total_peers = self.n
-        Ttx = self.Ttx
-        Tk = self.Tk
+        G.global_genesis = Block(None)
+        G.global_genesis.set_parent(None)
+        G.total_peers = self.n
+        G.Ttx = self.Ttx
+        G.Tk = self.Tk
         self.events = set()
         self.current_event = None
 
@@ -46,43 +44,41 @@ class Simulator:
         os.makedirs(dir_path)
 
     def get_new_peers(self):
-        global peers
         if self.adversary != "none":
             self.n -= 1
 
-        peers = [Peer() for _ in range(self.n)]
+        G.peers = [Peer() for _ in range(self.n)]
+        # print(G.peers[5].id)
 
         for i in range(self.slow_peers):
-            peers[i].is_fast = False
+            G.peers[i].is_fast = False
         for i in range(self.slow_peers, self.n):
-            peers[i].is_fast = True
+            G.peers[i].is_fast = True
 
-        random.shuffle(peers)
+        random.shuffle(G.peers)
 
         # if self.adversary != "none":
         #     self.n += 1
         #     if self.adversary == "selfish":
-        #         peers.append(SelfishAttacker())
+        #         G.peers.append(SelfishAttacker())
         #     else:
-        #         peers.append(StubbornAttacker())
-        #     peers[-1].is_fast = True
+        #         G.peers.append(StubbornAttacker())
+        #     G.peers[-1].is_fast = True
         #     honest_power = 0.0
         #     for i in range(self.n - 1):
-        #         honest_power += peers[i].hash_power
-        #     peers[-1].hash_power = (honest_power * self.alpha) / (1 - self.alpha)
-        global peer_counter
-        for i in range(self.n):
-            peers[i].id = peer_counter
-            peer_counter += 1
+        #         honest_power += G.peers[i].hash_power
+        #     G.peers[-1].hash_power = (honest_power * self.alpha) / (1 - self.alpha)
+        # for i in range(self.n):
+        #     G.peers[i].id = G.peer_counter
+        #     G.peer_counter += 1
 
-        normalization_factor = sum(p.hash_power / self.n for p in peers)
-        for p in peers:
+        normalization_factor = sum(p.hash_power / self.n for p in G.peers)
+        for p in G.peers:
             p.initialize_block_mining_distribution(p.hash_power / normalization_factor)
 
     def form_random_network(self, os):
         assert self.edges >= self.n - 1
-        global peers
-        n = len(peers)
+        n = len(G.peers)
 
         if self.adversary != "none":
             n -= 1
@@ -97,10 +93,14 @@ class Simulator:
         if node_1 > node_2:
             node_1, node_2 = node_2, node_1
 
-        s = set(range(n))
+        s = set()
+        for i in range(n):
+            s.add(i)
         t = {node_1, node_2}
+        s.remove(node_1)
+        s.remove(node_2)
 
-        Peer.add_edge(peers[node_1], peers[node_2], os)
+        G.peers[node_1].add_edge(G.peers[node_2])
         self.edges -= 1
 
         degrees = [0] * n
@@ -122,7 +122,7 @@ class Simulator:
                 if next_node > disc:
                     next_node, disc = disc, next_node
 
-                Peer.add_edge(peers[next_node], peers[disc], os)
+                G.peers[next_node].add_edge(G.peers[disc])
                 self.edges -= 1
                 degrees[next_node] += 1
                 degrees[disc] += 1
@@ -138,7 +138,7 @@ class Simulator:
                 a, disc = disc, a
 
             if (a, disc) not in edges_set:
-                Peer.add_edge(peers[a], peers[disc], os)
+                G.peers[a].add_edge(G.peers[disc])
                 self.edges -= 1
                 degrees[a] += 1
                 degrees[disc] += 1
@@ -152,14 +152,13 @@ class Simulator:
                 b = n - 1
 
                 if (a, b) not in edges_set:
-                    Peer.add_edge(peers[a], peers[b], os)
+                    G.peers[a].add_edge(G.peers[b])
                     self.edges -= 1
                     degrees[a] += 1
                     degrees[b] += 1
 
     def init_events(self):
-        global peers
-        for peer in peers:
+        for peer in G.peers:
             peer.schedule_next_transaction(self)
             peer.schedule_next_block(self)
 
@@ -183,28 +182,25 @@ class Simulator:
         self.init_events()
         self.has_simulation_ended = False
 
-        max_txns = INT_MAX if max_txns_ <= 0 else max_txns_
-        max_blocks = INT_MAX if max_blocks_ <= 0 else max_blocks_
-        end_time = DBL_MAX if end_time_ <= 0 else end_time_
-        global txn_counter, blk_counter
+        max_txns = G.INT_MAX if max_txns_ <= 0 else max_txns_
+        max_blocks = G.INT_MAX if max_blocks_ <= 0 else max_blocks_
+        end_time = G.DBL_MAX if end_time_ <= 0 else end_time_
         while self.events:
             self.current_event = min(self.events, key=lambda x: x.timestamp)
             self.current_timestamp = self.current_event.timestamp
 
             if self.current_event.timestamp > end_time:
                 break
-            if txn_counter >= max_txns:
+            if G.txn_counter >= max_txns:
                 break
-            if blk_counter >= max_blocks:
+            if G.blk_counter >= max_blocks:
                 break
-
             self.current_event.run(self)
 
             self.delete_event(self.current_event)
-        global peers
 
         self.reset("output/termination_blockchains")
-        for p in peers:
+        for p in G.peers:
             filename = f"output/termination_blockchains/{p.get_name()}.txt"
             with open(filename, 'w') as outfile:
                 p.export_blockchain(outfile)
@@ -212,25 +208,24 @@ class Simulator:
         self.complete_non_generate_events()
 
         self.reset("output/block_arrivals")
-        for p in peers:
+        for p in G.peers:
             filename = f"output/block_arrivals/{p.get_name()}.txt"
             with open(filename, 'w') as outfile:
                 p.export_arrival_times(outfile)
 
         self.reset("output/peer_stats")
-        for p in peers:
+        for p in G.peers:
             filename = f"output/peer_stats/{p.get_name()}.txt"
             with open(filename, 'w') as outfile:
                 p.export_stats(self, outfile)
 
-        print("Total Transactions:", txn_counter)
-        print("Total Blocks:", blk_counter)
+        print("Total Transactions:", G.txn_counter)
+        print("Total Blocks:", G.blk_counter)
 
     def complete_non_generate_events(self):
         self.has_simulation_ended = True
-        global peers
 
-        for p in peers:
+        for p in G.peers:
             p.next_mining_event = None
             p.next_mining_block = None
 
@@ -244,12 +239,12 @@ class Simulator:
             self.delete_event(self.current_event)
 
         self.reset("output/final_blockchains")
-        for p in peers:
+        for p in G.peers:
             filename = f"output/final_blockchains/{p.get_name()}.txt"
             with open(filename, 'w') as outfile:
                 p.export_blockchain(outfile)
 
-    def log(self, os, s):
+    def log(self, s):
         if not self.verbose:
             return
-        os.write(f"Time {self.current_timestamp:.5f}: {s}\n")
+        print(f"Time {self.current_timestamp:.5f}: {s}")

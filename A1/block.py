@@ -12,15 +12,13 @@ class Block:
 
     # set id for this block and increment static counter
     def set_id(self):
-        global blk_counter
-        self.id = blk_counter
-        blk_counter += 1
+        self.id = G.blk_counter
+        G.blk_counter += 1
 
     # add txn in this block
     def add(self, txn):
-        global TRANSACTION_SIZE
         self.txns.append(txn)
-        self.size += TRANSACTION_SIZE  # size of every txn = 1 KB
+        self.size += G.TRANSACTION_SIZE  # size of every txn = 1 KB
 
     # return name of current block
     def get_name(self):
