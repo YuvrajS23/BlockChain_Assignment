@@ -7,7 +7,7 @@ class G:
 
     LOW_HASH_POWER = 0.1
     HIGH_HASH_POWER = 1
-    \
+
     # Assuming TRANSACTION_SIZE is a constant
     TRANSACTION_SIZE = 1
     # Assuming MINING_FEE is a constant
