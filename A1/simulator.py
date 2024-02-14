@@ -84,7 +84,6 @@ class Simulator:
             p.initialize_block_mining_distribution(p.hash_power / normalization_factor)
 
     def form_random_network(self, os):
-        self.get_new_peers()
         edge_list = generate_random_graph(G.total_peers)
         print(edge_list)
         os.write(f"{len(edge_list)}\n")
@@ -94,7 +93,6 @@ class Simulator:
             print(node1, node2)
             os.write(f"{node1} , {node2}\n")
             G.peers[node1].add_edge(G.peers[node2])
-            G.peers[node2].add_edge(G.peers[node1])
 
     def init_events(self):
         for peer in G.peers:

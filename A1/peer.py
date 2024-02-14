@@ -80,15 +80,15 @@ class Peer:
 
         # increase the degree
         self.degree += 1
-        # b.degree += 1
+        b.degree += 1
 
         # add b in self's adj list
         ab = Link(b, self.is_fast)
         self.adj.append(ab)
 
         # add self in b's adj list
-        # ba = Link(self, b.is_fast)
-        # b.adj.append(ba)
+        ba = Link(self, b.is_fast)
+        b.adj.append(ba)
 
     # ================== TRANSACTION =============================
 
