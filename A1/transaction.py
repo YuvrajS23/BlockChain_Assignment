@@ -13,14 +13,6 @@ class Transaction:
         # timestamp at which txn was created
         self.timestamp = timestamp
 
+    # Return the id of the transaction as a string
     def get_name(self):
         return "Txn" + str(self.id + 1)
-
-
-# Example usage:
-# timestamp_ = 123456789
-# sender_ = some_sender_object
-# receiver_ = some_receiver_object
-# coins_ = 10
-# txn = Transaction(timestamp_, sender_, receiver_, coins_)
-# print(txn.get_name())
