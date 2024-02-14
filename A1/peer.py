@@ -39,6 +39,7 @@ class Peer:
         assert G.Tk > 0
         # no of peers connected to this
         self.degree = 0
+        self.is_fast = False
         # avg of expo dist = 1/lambda
         # distributions to sample txn interarrival time and block mining time
         self.txn_interarrival_time = random.expovariate(1.0 / G.Ttx)

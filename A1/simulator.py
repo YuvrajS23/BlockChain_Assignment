@@ -13,10 +13,12 @@ from utils import *
 
 
 class Simulator:
-    def __init__(self, n_, z_, Ttx_, Tk_, edges_, verbose_, invalid_txn_prob_, invalid_block_prob_, zeta_, adversary_, alpha_):
+    def __init__(self, n_, z0_, z1_, Ttx_, Tk_, edges_, verbose_, invalid_txn_prob_, invalid_block_prob_, zeta_, adversary_, alpha_):
         self.n = n_
-        self.z = min(1.0, max(z_, 0.0))
-        self.slow_peers = int(self.z * self.n)
+        self.z0 = min(1.0, max(z0_, 0.0))
+        self.slow_peers = int(self.z0 * self.n)
+        self.z1 = min(1.0, max(z1_, 0.0))
+        self.lowhashpower = int(self.z1 * self.n)
         self.Ttx = Ttx_
         self.Tk = Tk_
         self.edges = edges_
@@ -54,6 +56,11 @@ class Simulator:
             G.peers[i].is_fast = False
         for i in range(self.slow_peers, self.n):
             G.peers[i].is_fast = True
+
+        for i in range(self.lowhashpower):
+            G.peers[i].hash_power = G.LOW_HASH_POWER
+        for i in range(self.lowhashpower, self.n):
+            G.peers[i].hash_power = G.HIGH_HASH_POWER
 
         random.shuffle(G.peers)
 

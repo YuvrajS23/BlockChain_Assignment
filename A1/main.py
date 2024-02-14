@@ -20,7 +20,10 @@ argparser.add_argument("--peers", "-n", default=40, type=int, required=True,
 argparser.add_argument("--edges", "-e", default=150, type=int, required=True,
                        help="Number of edges in the peer network")
 
-argparser.add_argument("--slowpeers", "-z", default=0.4, type=float, required=True,
+argparser.add_argument("--slowpeers", "-z0", default=0.4, type=float, required=True,
+                       help="Fraction of slow peers in the network")
+
+argparser.add_argument("--lowhashpower", "-z1", default=0.4, type=float, required=True,
                        help="Fraction of slow peers in the network")
 
 argparser.add_argument("--time_limit", "-t", default=float('inf'), type=float, required=True,
@@ -66,7 +69,8 @@ args = argparser.parse_args()
 # Extract arguments
 n = args.peers
 edges = args.edges
-z = args.slowpeers
+z0 = args.slowpeers
+z1 = args.lowhashpower
 t = args.time_limit
 Ttx = args.txn_interarrival
 Tk = args.mining_time
@@ -84,5 +88,5 @@ adv = args.adversary_type
 random.seed(seed)
 
 # Create Simulator instance and run simulation
-simulator = Simulator(n, z, Ttx, Tk, edges, verbose, invalid_txn_prob, invalid_block_prob, zeta, adv, alpha)
+simulator = Simulator(n, z0, z1, Ttx, Tk, edges, verbose, invalid_txn_prob, invalid_block_prob, zeta, adv, alpha)
 simulator.run(t, max_txns, max_blocks)

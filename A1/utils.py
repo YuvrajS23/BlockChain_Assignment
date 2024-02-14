@@ -8,18 +8,19 @@ class G:
     LOW_HASH_POWER = 0.1
     HIGH_HASH_POWER = 1
 
+    MAX_BLOCK_SIZE = 1000
+
     # Assuming TRANSACTION_SIZE is a constant
     TRANSACTION_SIZE = 1
     # Assuming MINING_FEE is a constant
     MINING_FEE = 0
     # max allowed size for a block in KB
-    max_size = 1024
+    max_size = MAX_BLOCK_SIZE
 
     # pointer to the genesis block
     global_genesis = None   # Block
 
     START_TIME = 0.0
-    MAX_BLOCK_SIZE = 1000
     DBL_MAX = float('inf')
     INT_MAX = float('inf')
 
