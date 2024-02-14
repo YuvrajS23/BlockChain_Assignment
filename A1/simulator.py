@@ -10,10 +10,11 @@ from block import *
 from blockchain import *
 from event import *
 from utils import *
+from graph_generator import *
 
 
 class Simulator:
-    def __init__(self, n_, z0_, z1_, Ttx_, Tk_, edges_, verbose_, invalid_txn_prob_, invalid_block_prob_, zeta_, adversary_, alpha_):
+    def __init__(self, n_, z0_, z1_, Ttx_, Tk_, verbose_, invalid_txn_prob_, invalid_block_prob_, zeta_, adversary_, alpha_):
         self.n = n_
         self.z0 = min(1.0, max(z0_, 0.0))
         self.slow_peers = int(self.z0 * self.n)
@@ -21,7 +22,6 @@ class Simulator:
         self.lowhashpower = int(self.z1 * self.n)
         self.Ttx = Ttx_
         self.Tk = Tk_
-        self.edges = edges_
         self.current_timestamp = G.START_TIME
         self.invalid_txn_prob = invalid_txn_prob_
         self.invalid_block_prob = invalid_block_prob_
@@ -84,85 +84,17 @@ class Simulator:
             p.initialize_block_mining_distribution(p.hash_power / normalization_factor)
 
     def form_random_network(self, os):
-        assert self.edges >= self.n - 1
-        n = len(G.peers)
-
-        if self.adversary != "none":
-            n -= 1
-
-        assert n >= 2
-
-        node_1 = random.randint(0, n - 1)
-        node_2 = random.randint(0, n - 1)
-        while node_2 == node_1:
-            node_2 = random.randint(0, n - 1)
-
-        if node_1 > node_2:
-            node_1, node_2 = node_2, node_1
-
-        s = set()
-        for i in range(n):
-            s.add(i)
-        t = {node_1, node_2}
-        s.remove(node_1)
-        s.remove(node_2)
-
-        G.peers[node_1].add_edge(G.peers[node_2])
-        self.edges -= 1
-
-        degrees = [0] * n
-        degrees[node_1] += 1
-        degrees[node_2] += 1
-
-        edges_log = {(node_1, node_2)}
-
-        while s:
-            next_node = random.randint(0, n - 1)
-            if next_node not in t:
-                disc = random.choices(range(n), weights=degrees, k=1)[0]
-                while disc == next_node:
-                    disc = random.choices(range(n), weights=degrees, k=1)[0]
-
-                s.remove(next_node)
-                t.add(next_node)
-
-                if next_node > disc:
-                    next_node, disc = disc, next_node
-
-                G.peers[next_node].add_edge(G.peers[disc])
-                self.edges -= 1
-                degrees[next_node] += 1
-                degrees[disc] += 1
-
-        edges_set = set()
-        while self.edges > 0:
-            a = random.randint(0, n - 1)
-            disc = random.choices(range(n), weights=degrees, k=1)[0]
-            while disc == a:
-                disc = random.choices(range(n), weights=degrees, k=1)[0]
-
-            if a > disc:
-                a, disc = disc, a
-
-            if (a, disc) not in edges_set:
-                G.peers[a].add_edge(G.peers[disc])
-                self.edges -= 1
-                degrees[a] += 1
-                degrees[disc] += 1
-                edges_set.add((a, disc))
-
-        if self.adversary != "none":
-            self.edges = int(self.zeta * n)
-            n += 1
-            while self.edges > 0:
-                a = random.randint(0, n - 1)
-                b = n - 1
-
-                if (a, b) not in edges_set:
-                    G.peers[a].add_edge(G.peers[b])
-                    self.edges -= 1
-                    degrees[a] += 1
-                    degrees[b] += 1
+        self.get_new_peers()
+        edge_list = generate_random_graph(G.total_peers)
+        print(edge_list)
+        os.write(f"{len(edge_list)}\n")
+        for edge in edge_list:
+            node1 = edge[0]
+            node2 = edge[1]
+            print(node1, node2)
+            os.write(f"{node1} , {node2}\n")
+            G.peers[node1].add_edge(G.peers[node2])
+            G.peers[node2].add_edge(G.peers[node1])
 
     def init_events(self):
         for peer in G.peers:

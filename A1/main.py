@@ -17,8 +17,8 @@ argparser = argparse.ArgumentParser(description="./blockchain_simulator 1.0")
 argparser.add_argument("--peers", "-n", default=40, type=int, required=True,
                        help="Number of peers in the network")
 
-argparser.add_argument("--edges", "-e", default=150, type=int, required=True,
-                       help="Number of edges in the peer network")
+# argparser.add_argument("--edges", "-e", default=150, type=int, required=True,
+#                        help="Number of edges in the peer network")
 
 argparser.add_argument("--slowpeers", "-z0", default=0.4, type=float, required=True,
                        help="Fraction of slow peers in the network")
@@ -68,7 +68,7 @@ args = argparser.parse_args()
 
 # Extract arguments
 n = args.peers
-edges = args.edges
+# edges = args.edges
 z0 = args.slowpeers
 z1 = args.lowhashpower
 t = args.time_limit
@@ -88,5 +88,5 @@ adv = args.adversary_type
 random.seed(seed)
 
 # Create Simulator instance and run simulation
-simulator = Simulator(n, z0, z1, Ttx, Tk, edges, verbose, invalid_txn_prob, invalid_block_prob, zeta, adv, alpha)
+simulator = Simulator(n, z0, z1, Ttx, Tk, verbose, invalid_txn_prob, invalid_block_prob, zeta, adv, alpha)
 simulator.run(t, max_txns, max_blocks)
