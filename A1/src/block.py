@@ -27,7 +27,10 @@ class Block:
     # return a copy of this block
     def clone(self):
         ret = Block(self.owner)
-        ret.__dict__ = self.__dict__.copy()
+        ret.size = self.size
+        ret.id = self.id
+        ret.txns = self.txns[:]
+        ret.parent_id = self.parent_id
         ret.reset_parent()
         ret.next = []
         return ret

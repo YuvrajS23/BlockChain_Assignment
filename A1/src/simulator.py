@@ -86,12 +86,11 @@ class Simulator:
     def form_random_network(self, os):
         edge_list = generate_random_graph(G.total_peers)
         print(edge_list)
-        os.write(f"{len(edge_list)}\n")
         for edge in edge_list:
             node1 = edge[0]
             node2 = edge[1]
             print(node1, node2)
-            os.write(f"{node1} , {node2}\n")
+            os.write(f"{node1} {node2}\n")
             G.peers[node1].add_edge(G.peers[node2])
 
     def init_events(self):

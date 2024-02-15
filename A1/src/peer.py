@@ -227,6 +227,7 @@ class Peer:
         validity = "INVALID"
         if is_valid:
             # print("Hey Called You")
+            print(f"Adding id {block.id + 1} with parent {block.parent_id} in peer {self.id + 1}'s blockchain")
             self.add_block(block, True)
             validity = "VALID"
         sim.log(f"{self.get_name()} mines and broadcasts {validity} block {block.get_name()}")
@@ -301,15 +302,15 @@ class Peer:
     def free_blocks_dfs(self, block, cur_balances, blocks_to_add, deepest_block, sim):
         if not self.validate_block(block, cur_balances):
             self.delete_invalid_free_blocks(block, sim)
-            return
+            return deepest_block
 
         blocks_to_add.add(block)
         if deepest_block is None or block.depth > deepest_block.depth:
             deepest_block = block
-        # print("Deepest block's id", deepest_block.id)
+        print("Deepest block's id", deepest_block.id)
         it = block.id in self.free_block_parents.keys()
         if not it:
-            return
+            return deepest_block
 
         # update balance array
         for txn in block.txns:
@@ -324,13 +325,16 @@ class Peer:
             del self.free_blocks[child.id]
             self.free_blocks_dfs(child, cur_balances, blocks_to_add, deepest_block, sim)
         del self.free_block_parents[block.id]
-
-        # print("Deepest block's id", deepest_block.id)
+        # if deepest_block is not None:
+        #     print("Deepest block's id", deepest_block.id)
+        # else:
+        #     print("None aa raha hai")
         # reset balance array
         for txn in block.txns:
             cur_balances[txn.sender.id] += txn.amount
             cur_balances[txn.receiver.id] -= txn.amount
         cur_balances[block.owner.id] -= G.MINING_FEE
+        return deepest_block
 
     def receive_block(self, sim, sender, block):
         chain_it = block.id in self.chain_blocks.keys()
@@ -390,23 +394,25 @@ class Peer:
             current_balance_change[i] += self.balances[i] - branch_balance_change[i]
 
         blocks_to_add = set()
-        deepest_block = None
+        deepest_block_ = None
 
-        self.free_blocks_dfs(block, current_balance_change, blocks_to_add, deepest_block, sim)
+        deepest_block = self.free_blocks_dfs(block, current_balance_change, blocks_to_add, deepest_block_, sim)
 
         # block is invalid
+        print("Pehle")
         if deepest_block is None:
             # print("Reached here")
             return
-
         # now block gets added to blockchain
+        print("baad mein")
         # balances will be updated only if branch was changed
+        
         if deepest_block.depth > self.blockchain.current_block.depth:
 
             # change peer state to just before block insertion
             self.balances = current_balance_change
-            self.txn_pool.extend(txns_to_add)
-            self.txn_pool = [item for item in self.txn_pool if item not in txns_to_remove]
+            self.txn_pool = self.txn_pool.union(set(txns_to_add))
+            self.txn_pool = set([item for item in self.txn_pool if item not in txns_to_remove])
 
             order = [deepest_block]
             while order[-1] != block:
@@ -415,10 +421,12 @@ class Peer:
             while order:
                 b = order.pop()
                 # print("Heyaa got you")
+                print(f"Adding id {block.id + 1} with parent {block.parent_id} in peer {self.id + 1}'s blockchain")
                 self.add_block(b, True)
                 blocks_to_add.discard(b)
 
             for b in blocks_to_add:
+                print(f"Adding id {block.id + 1} with parent {block.parent_id} in peer {self.id + 1}'s blockchain")
                 self.add_block(b, False)
 
             if self.next_mining_event is not None:
@@ -427,6 +435,7 @@ class Peer:
                 self.schedule_next_block(sim)
         else:
             for b in blocks_to_add:
+                print(f"Adding id {block.id + 1} with parent {block.parent_id} in peer {self.id + 1}'s blockchain")
                 self.add_block(b, False)
 
     # output the edges in blockchain in os and update deepest_block
