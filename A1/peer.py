@@ -10,8 +10,6 @@ from link import *
 from utils import *
 
 class Peer:
-    
-
     def __init__(self):
         # list of peers adjacent to this peer
         self.adj = []
@@ -27,6 +25,8 @@ class Peer:
         # blocks which are invalid
         self.rejected_blocks = set()
         self.received_blocks = set()
+        self.forwarded_blocks = {}
+        self.forwarded_txns = {}
         # stores arrival times for each block
         self.block_arrival_times = []
         # unique id for every block
@@ -77,7 +77,7 @@ class Peer:
     # creates a link between peer a and peer b
     def add_edge(self, b):   # Peer self, Peer b, ostream os
         # write undirected edge to file
-        print(f"Edge between peers: {self.id + 1} {b.id + 1}\n")
+        print(f"{self.id + 1} {b.id + 1}\n")
 
         # increase the degree
         self.degree += 1
@@ -134,6 +134,18 @@ class Peer:
     def forward_transaction(self, sim, source, txn):
         # send transaction to peers
         for link in self.adj:
+            if txn.id not in self.forwarded_txns.keys():
+                self.forwarded_txns[txn.id] = [link.peer.id]
+            else:
+                found = False
+                for i in self.forwarded_txns[txn.id]:
+                    if i == link.peer.id:
+                        found = True
+                        break
+                if found:
+                    continue
+                else:
+                    self.forwarded_txns[txn.id].append(link.peer.id)
             if link.peer.id == source.id:
                 continue  # source already has the txn, loop-less forwarding
             delay = link.get_delay(G.TRANSACTION_SIZE)
@@ -214,10 +226,14 @@ class Peer:
         # do not add an invalid block, only transmit it to other peers
         validity = "INVALID"
         if is_valid:
+            # print("Hey Called You")
             self.add_block(block, True)
             validity = "VALID"
         sim.log(f"{self.get_name()} mines and broadcasts {validity} block {block.get_name()}")
+        # print("TimeStamp before appending", sim.current_timestamp)
+        # print(len(self.block_arrival_times))
         self.block_arrival_times.append((block, sim.current_timestamp))
+        # print(len(self.block_arrival_times))
 
         ev = ForwardBlock(0, self, self, block.clone())
         sim.add_event(ev)
@@ -228,6 +244,19 @@ class Peer:
         # send block to peers
         # this block is a copy, memory needs to be freed
         for link in self.adj:
+            if block.id not in self.forwarded_blocks.keys():
+                self.forwarded_blocks[block.id] = [link.peer.id]
+            else:
+                found = False
+                for i in self.forwarded_blocks[block.id]:
+                    if i == link.peer.id:
+                        found = True
+                        break
+                if found:
+                    continue
+                else:
+                    self.forwarded_blocks[block.id].append(link.peer.id)
+                
             if link.peer.id == source.id:
                 continue  # source already has the block, loop-less forwarding
             new_block = block.clone()
@@ -239,7 +268,9 @@ class Peer:
     # add block to the blockchain and update balances
     def add_block(self, block, update_balances):
         self.blockchain.add(block)
+        # print(len(self.chain_blocks))
         self.chain_blocks[block.id] = block
+        # print(len(self.chain_blocks))
         if update_balances:
             for txn in block.txns:
                 self.balances[txn.sender.id] -= txn.amount
@@ -275,7 +306,7 @@ class Peer:
         blocks_to_add.add(block)
         if deepest_block is None or block.depth > deepest_block.depth:
             deepest_block = block
-
+        # print("Deepest block's id", deepest_block.id)
         it = block.id in self.free_block_parents.keys()
         if not it:
             return
@@ -294,6 +325,7 @@ class Peer:
             self.free_blocks_dfs(child, cur_balances, blocks_to_add, deepest_block, sim)
         del self.free_block_parents[block.id]
 
+        # print("Deepest block's id", deepest_block.id)
         # reset balance array
         for txn in block.txns:
             cur_balances[txn.sender.id] += txn.amount
@@ -306,11 +338,13 @@ class Peer:
         reject_it = block.id in self.rejected_blocks
 
         # already received this block
-        if not chain_it or free_it is not None or not reject_it:
+        if chain_it or free_it or reject_it:
             return
 
         # block arrival times
+        # print(len(self.block_arrival_times))
         self.block_arrival_times.append((block, sim.current_timestamp))
+        # print(len(self.block_arrival_times))
         
         # forward every received block regardless of validity
         ev = ForwardBlock(0, self, sender, block.clone())
@@ -321,7 +355,10 @@ class Peer:
         # block parent not in our blockchain
         if not chain_it:
             self.free_blocks[block.id] = block
-            self.free_block_parents[block.parent_id].append(block)
+            if block.parent_id in self.free_block_parents.keys():
+                self.free_block_parents[block.parent_id].append(block)
+            else:
+                self.free_block_parents[block.parent_id] = [block]
             return
 
         block.set_parent(self.chain_blocks[block.parent_id])
@@ -335,18 +372,18 @@ class Peer:
         txns_to_add = []
         # find lca
         while current_block.depth > branch_block.depth:
-            current_block = Blockchain.backward(current_block, current_balance_change, txns_to_add)
+            current_block = self.blockchain.backward(current_block, current_balance_change, txns_to_add)
 
         # balances to update in case longest chain changes
         branch_balance_change = [0] * G.total_peers
         # txns to remove from the txn pool in case longest chain changes
         txns_to_remove = []
         while branch_block.depth > current_block.depth:
-            branch_block = Blockchain.backward(branch_block, branch_balance_change, txns_to_remove)
+            branch_block = self.blockchain.backward(branch_block, branch_balance_change, txns_to_remove)
 
         while branch_block.id != current_block.id:
-            current_block = Blockchain.backward(current_block, current_balance_change, txns_to_add)
-            branch_block = Blockchain.backward(branch_block, branch_balance_change, txns_to_remove)
+            current_block = self.blockchain.backward(current_block, current_balance_change, txns_to_add)
+            branch_block = self.blockchain.backward(branch_block, branch_balance_change, txns_to_remove)
 
         # current_balance_change = balances just before block insertion point
         for i in range(G.total_peers):
@@ -359,6 +396,7 @@ class Peer:
 
         # block is invalid
         if deepest_block is None:
+            # print("Reached here")
             return
 
         # now block gets added to blockchain
@@ -376,6 +414,7 @@ class Peer:
 
             while order:
                 b = order.pop()
+                # print("Heyaa got you")
                 self.add_block(b, True)
                 blocks_to_add.discard(b)
 
@@ -408,6 +447,9 @@ class Peer:
     # output the arrival times of blocks to os
     def export_arrival_times(self, os):
         self.block_arrival_times.sort(key=lambda p: p[0].id)
+        # for i in self.block_arrival_times:
+        #     print(f"{i[0].id} arrived at {i[1]} whose parent is {i[0].parent_id}")
+        
 
         os.write(f"{self.get_name()}\n")
         for p in self.block_arrival_times:

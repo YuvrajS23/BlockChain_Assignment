@@ -16,12 +16,11 @@ class Blockchain:
     def backward(self, b, balances, txns):  # Block, list, list
         # used when the longest branch changes to some other branch
         # equivalent to rolling back the addition of block b
-        global MINING_FEE
         for txn in b.txns:
             balances[txn.sender.id] += txn.amount
             balances[txn.receiver.id] -= txn.amount
             txns.append(txn)
-        balances[b.owner.id] -= MINING_FEE
+        balances[b.owner.id] -= G.MINING_FEE
         return b.parent
 
 
