@@ -28,8 +28,8 @@ class GenerateTransaction(Event):
 
     def run(self, sim): # Simulator : sim
         txn = self.payed_by.generate_transaction(sim)   # generate_transaction func in Peer class
-        # if txn is not None:
-            # sim.log(f"{self.payed_by.get_name()} generates and emits transaction {txn.get_name()}")
+        if txn is not None:
+            sim.log(f"{self.payed_by.get_name()} generates and emits transaction {txn.get_name()}")
             # pass
 
 
@@ -42,8 +42,8 @@ class ForwardTransaction(Event):
 
     def run(self, sim):
         if self.peer.id != self.source.id:
-            # sim.log(f"{self.peer.get_name()} forwards transaction {self.txn.get_name()} received from {self.source.get_name()}")
-            self.peer.forward_transaction(sim, self.source, self.txn)   # forward_transaction func in Peer class
+            sim.log(f"{self.peer.get_name()} forwards transaction {self.txn.get_name()} received from {self.source.get_name()}")
+        self.peer.forward_transaction(sim, self.source, self.txn)   # forward_transaction func in Peer class
 
 
 class ReceiveTransaction(Event):
@@ -54,7 +54,7 @@ class ReceiveTransaction(Event):
         self.txn = txn  # transaction
 
     def run(self, sim):
-        # sim.log(f"{self.receiver.get_name()} receives transaction {self.txn.get_name()} from {self.sender.get_name()}")
+        sim.log(f"{self.receiver.get_name()} receives transaction {self.txn.get_name()} from {self.sender.get_name()}")
         self.receiver.receive_transaction(sim, self.sender, self.txn)   # receive_transaction func in Peer class
 
 
@@ -77,8 +77,8 @@ class ForwardBlock(Event):
 
     def run(self, sim):
         if self.peer.id != self.source.id:
-            # sim.log(f"{self.peer.get_name()} forwards block {self.block.get_name()} received from {self.source.get_name()}")
-            self.peer.forward_block(sim, self.source, self.block)    # forward_block func in Peer class
+            sim.log(f"{self.peer.get_name()} forwards block {self.block.get_name()} received from {self.source.get_name()}")
+        self.peer.forward_block(sim, self.source, self.block)    # forward_block func in Peer class
 
 
 class ReceiveBlock(Event):
@@ -89,5 +89,5 @@ class ReceiveBlock(Event):
         self.block = block  # block
 
     def run(self, sim):
-        # sim.log(f"{self.receiver.get_name()} receives block {self.block.get_name()} from {self.sender.get_name()}")
+        sim.log(f"{self.receiver.get_name()} receives block {self.block.get_name()} from {self.sender.get_name()}")
         self.receiver.receive_block(sim, self.sender, self.block)    # receive_block func in Peer class

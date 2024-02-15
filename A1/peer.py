@@ -10,24 +10,25 @@ from link import *
 from utils import *
 
 class Peer:
-    # list of peers adjacent to this peer
-    adj = []
-    # all transaction ids received so far
-    recv_pool = set()
-    # chain_blocks: blocks in the blockchain, free_blocks: blocks not yet in blockchain
-    chain_blocks = {}
-    free_blocks = {}
-    # map from free_block_parents ids to pointer to free blocks 
-    free_block_parents = {}
-    # transactions not yet mined
-    txn_pool = set()
-    # blocks which are invalid
-    rejected_blocks = set()
-    received_blocks = set()
-    # stores arrival times for each block
-    block_arrival_times = []
+    
 
     def __init__(self):
+        # list of peers adjacent to this peer
+        self.adj = []
+        # all transaction ids received so far
+        self.recv_pool = set()
+        # chain_blocks: blocks in the blockchain, free_blocks: blocks not yet in blockchain
+        self.chain_blocks = {}
+        self.free_blocks = {}
+        # map from free_block_parents ids to pointer to free blocks 
+        self.free_block_parents = {}
+        # transactions not yet mined
+        self.txn_pool = set()
+        # blocks which are invalid
+        self.rejected_blocks = set()
+        self.received_blocks = set()
+        # stores arrival times for each block
+        self.block_arrival_times = []
         # unique id for every block
         self.id = G.peer_counter
         G.peer_counter += 1
