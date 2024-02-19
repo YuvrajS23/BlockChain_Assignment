@@ -1,8 +1,8 @@
 import random
-from typing import Union
-
+# Class for Link
 class Link:
     def __init__(self, peer, is_fast):
+        # Peer to whom the link is connected
         self.peer = peer
         # 5Mbps = 625KBps
         # 100Mbps = 12500KBps
@@ -19,9 +19,3 @@ class Link:
         d = self.exp
         return self.ro + length / self.c + d
 
-# Example usage:
-# peer = some_peer_object
-# is_fast_link = True  # or False
-# link = Link(peer, is_fast_link)
-# message_length = 1024  # in KB
-# delay = link.get_delay(message_length)

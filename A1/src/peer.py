@@ -1,7 +1,5 @@
-from typing import List
 import io
 import random
-from collections import deque
 from transaction import Transaction
 from block import Block
 from blockchain import Blockchain
@@ -9,6 +7,7 @@ from event import *
 from link import *
 from utils import *
 
+# Class simulating the characteristics of a peer
 class Peer:
     def __init__(self):
         # list of peers adjacent to this peer
@@ -25,7 +24,9 @@ class Peer:
         # blocks which are invalid
         self.rejected_blocks = set()
         self.received_blocks = set()
+        # Dict of blocks forwarded by this peer, type {block.id : [peer.id] # list of peers}
         self.forwarded_blocks = {}
+        # Dict of transactions forwarded by this peer, type {txn.id : [peer.id] # list of peers}
         self.forwarded_txns = {}
         # stores arrival times for each block
         self.block_arrival_times = []
@@ -49,25 +50,27 @@ class Peer:
         # uniform distribution to select a real no between 0 and 1
         self.unif_rand_real = random.uniform(0, 1)
 
+        # Initializing the blockChain for this peer
         self.blockchain = Blockchain()
         # add genesis block in chain_blocks
         self.chain_blocks[self.blockchain.current_block.id] = self.blockchain.current_block
 
         self.block_arrival_times.append((self.blockchain.genesis, 0))
 
-        # create hash power distribution: 50% with low hash power (0.1) 
-        # and remaining 50% with high hash power (0.5)
         # fraction of the entire hash power
-        self.hash_power = G.LOW_HASH_POWER if self.unif_rand_real < 0.5 else G.HIGH_HASH_POWER
+        # Initially setting a garbage value on constructing the peer
+        # Value reset in get_new_peers func in simulator
+        self.hash_power = G.LOW_HASH_POWER
 
     # update hash power to normalized value and initialize block mining distribution
     def initialize_block_mining_distribution(self, hash_power):
         self.hash_power = hash_power
+        # print(f"{self.id + 1} has hash power {self.hash_power}")
         # more hash power: less G.Tk
         self.block_mining_time = random.expovariate(hash_power / G.Tk)
 
     # returns the name of this peer
-    def get_name(self):
+    def getName(self):
         return f"Peer{self.id + 1}"
 
     # returns the degree for this peer
@@ -75,9 +78,8 @@ class Peer:
         return self.degree
 
     # creates a link between peer a and peer b
-    def add_edge(self, b):   # Peer self, Peer b, ostream os
-        # write undirected edge to file
-        print(f"{self.id + 1} {b.id + 1}\n")
+    def add_edge(self, b):   # Peer self, Peer b
+        # print(f"{self.id + 1} {b.id + 1}\n")
 
         # increase the degree
         self.degree += 1
@@ -93,11 +95,13 @@ class Peer:
 
     # ================== TRANSACTION =============================
 
+    # schedules the next txn and adds it to the event queue
     def schedule_next_transaction(self, sim):
         interArrivalTime = self.txn_interarrival_time
         ev = GenerateTransaction(interArrivalTime, self)
         sim.add_event(ev)
 
+    # Generates a txn and adds forward txn event to the event queue
     def generate_transaction(self, sim):
         generate_invalid = random.uniform(0, 1) < sim.invalid_txn_prob
         coins = -1
@@ -112,14 +116,14 @@ class Peer:
 
         txn = None
         if coins > 0:
-            # todo: check if uniform distribution is correct for sampling receiver & no of coins
+            # sampling receiver & no of coins
             receiver = random.randint(0, G.total_peers - 1)
             while receiver == self.id:
                 receiver = random.randint(0, G.total_peers - 1)
 
             txn = Transaction(sim.current_timestamp, self, G.peers[receiver], coins)
 
-            # todo: add transaction in transaction/recv pool
+            # adding transaction in transaction/recv pool
             self.recv_pool.add(txn.id)
             self.txn_pool.add(txn)
 
@@ -131,9 +135,12 @@ class Peer:
         self.schedule_next_transaction(sim)
         return txn
 
+    # forwards a txn to all the neighbors
+    # Does loop-less forwarding 
     def forward_transaction(self, sim, source, txn):
         # send transaction to peers
         for link in self.adj:
+            # Checking if already forwarded or not
             if txn.id not in self.forwarded_txns.keys():
                 self.forwarded_txns[txn.id] = [link.peer.id]
             else:
@@ -152,6 +159,7 @@ class Peer:
             ev = ReceiveTransaction(delay, self, link.peer, txn)
             sim.add_event(ev)
 
+    # receives a txn and adds it to txn and recv pools
     def receive_transaction(self, sim, sender, txn):
         # if already received the transaction then ignore
         if txn.id in self.recv_pool:
@@ -164,12 +172,14 @@ class Peer:
         ev = ForwardTransaction(0, self, sender, txn)
         sim.add_event(ev)
 
+    # Checks if a txn is valid or not
     def validate_txn(self, txn, custom_balances):
         balance = custom_balances[txn.sender.id]
         return balance >= txn.amount
 
     # ================== BLOCK =============================
 
+    # checks if a block is valid or not
     def validate_block(self, block, custom_balances):
         if block.size > G.max_size:
             return False
@@ -185,7 +195,7 @@ class Peer:
     def generate_new_block(self, sim):
         generate_invalid = random.uniform(0, 1) < sim.invalid_block_prob
         block = Block(self)
-        block.set_parent(self.blockchain.current_block)
+        block.setParent(self.blockchain.current_block)
         is_invalid = False
         balances_copy = self.balances[:]
         if generate_invalid:
@@ -210,15 +220,17 @@ class Peer:
                 balances_copy[txn.receiver.id] += txn.amount
         return block
 
+    # Schedules next mining event
     def schedule_next_block(self, sim):
         self.next_mining_block = self.generate_new_block(sim)
         miningTime = random.expovariate(self.hash_power / G.Tk)
         self.next_mining_event = BroadcastMinedBlock(miningTime, self)
         sim.add_event(self.next_mining_event)
 
+    # Broadcasts the mined block
     def broadcast_mined_block(self, sim):
         block = self.next_mining_block
-        block.set_id()
+        block.setID()
 
         assert self.blockchain.current_block.id == block.parent.id
         is_valid = self.validate_block(block, self.balances)
@@ -227,10 +239,10 @@ class Peer:
         validity = "INVALID"
         if is_valid:
             # print("Hey Called You")
-            print(f"Adding id {block.id + 1} with parent {block.parent_id} in peer {self.id + 1}'s blockchain")
+            # print(f"Adding id {block.id + 1} with parent {block.parent_id} in peer {self.id + 1}'s blockchain")
             self.add_block(block, True)
             validity = "VALID"
-        sim.log(f"{self.get_name()} mines and broadcasts {validity} block {block.get_name()}")
+        sim.log(f"{self.getName()} mines and broadcasts {validity} block {block.getName()}")
         # print("TimeStamp before appending", sim.current_timestamp)
         # print(len(self.block_arrival_times))
         self.block_arrival_times.append((block, sim.current_timestamp))
@@ -241,6 +253,7 @@ class Peer:
 
         self.schedule_next_block(sim)
 
+    # forwards the blk received from source to its neighbors in loop-less manner
     def forward_block(self, sim, source, block):
         # send block to peers
         # this block is a copy, memory needs to be freed
@@ -279,14 +292,16 @@ class Peer:
                 if txn in self.txn_pool:
                     self.txn_pool.remove(txn)
             self.balances[block.owner.id] += G.MINING_FEE
+            # print(f"Current block changed from {self.blockchain.current_block.id} to {block.id}")
             self.blockchain.current_block = block
 
+    # delete invalid free blocks
     def delete_invalid_free_blocks(self, block, sim):
         it = block.id in self.free_block_parents.keys()
         
         # add block to rejected_blocks
         self.rejected_blocks.add(block.id)
-        sim.log(f"{self.get_name()} REJECTS block {block.get_name()}")
+        sim.log(f"{self.getName()} REJECTS block {block.getName()}")
         
         if not it:
             return
@@ -294,11 +309,12 @@ class Peer:
         # recursive call to delete child blocks
         for child in self.free_block_parents[block.id]:
             assert child.parent is None
-            child.set_parent(block)
+            child.setParent(block)
             del self.free_blocks[child.id]
             self.delete_invalid_free_blocks(child, sim)
         del self.free_block_parents[block.id]
 
+    # do dfs in free blocks
     def free_blocks_dfs(self, block, cur_balances, blocks_to_add, deepest_block, sim):
         if not self.validate_block(block, cur_balances):
             self.delete_invalid_free_blocks(block, sim)
@@ -307,7 +323,7 @@ class Peer:
         blocks_to_add.add(block)
         if deepest_block is None or block.depth > deepest_block.depth:
             deepest_block = block
-        print("Deepest block's id", deepest_block.id)
+        # print("Deepest block's id", deepest_block.id)
         it = block.id in self.free_block_parents.keys()
         if not it:
             return deepest_block
@@ -321,7 +337,7 @@ class Peer:
         # recursive call to child blocks
         for child in self.free_block_parents[block.id]:
             assert child.parent is None
-            child.set_parent(block)
+            child.setParent(block)
             del self.free_blocks[child.id]
             self.free_blocks_dfs(child, cur_balances, blocks_to_add, deepest_block, sim)
         del self.free_block_parents[block.id]
@@ -336,6 +352,7 @@ class Peer:
         cur_balances[block.owner.id] -= G.MINING_FEE
         return deepest_block
 
+    # receives a blocks and handles it accordingly
     def receive_block(self, sim, sender, block):
         chain_it = block.id in self.chain_blocks.keys()
         free_it = block.id in self.free_blocks.keys()
@@ -365,7 +382,7 @@ class Peer:
                 self.free_block_parents[block.parent_id] = [block]
             return
 
-        block.set_parent(self.chain_blocks[block.parent_id])
+        block.setParent(self.chain_blocks[block.parent_id])
 
         current_block = self.blockchain.current_block  # last block in the blockchain
         branch_block = block.parent  # add the new block as a child of branch block
@@ -399,12 +416,12 @@ class Peer:
         deepest_block = self.free_blocks_dfs(block, current_balance_change, blocks_to_add, deepest_block_, sim)
 
         # block is invalid
-        print("Pehle")
+        # print("Pehle")
         if deepest_block is None:
             # print("Reached here")
             return
         # now block gets added to blockchain
-        print("baad mein")
+        # print("baad mein")
         # balances will be updated only if branch was changed
         
         if deepest_block.depth > self.blockchain.current_block.depth:
@@ -421,12 +438,12 @@ class Peer:
             while order:
                 b = order.pop()
                 # print("Heyaa got you")
-                print(f"Adding id {block.id + 1} with parent {block.parent_id} in peer {self.id + 1}'s blockchain")
+                # print(f"Adding id {block.id + 1} with parent {block.parent_id} in peer {self.id + 1}'s blockchain")
                 self.add_block(b, True)
                 blocks_to_add.discard(b)
 
             for b in blocks_to_add:
-                print(f"Adding id {block.id + 1} with parent {block.parent_id} in peer {self.id + 1}'s blockchain")
+                # print(f"Adding id {block.id + 1} with parent {block.parent_id} in peer {self.id + 1}'s blockchain")
                 self.add_block(b, False)
 
             if self.next_mining_event is not None:
@@ -435,7 +452,7 @@ class Peer:
                 self.schedule_next_block(sim)
         else:
             for b in blocks_to_add:
-                print(f"Adding id {block.id + 1} with parent {block.parent_id} in peer {self.id + 1}'s blockchain")
+                # print(f"Adding id {block.id + 1} with parent {block.parent_id} in peer {self.id + 1}'s blockchain")
                 self.add_block(b, False)
 
     # output the edges in blockchain in os and update deepest_block
@@ -451,7 +468,8 @@ class Peer:
 
         for c in b.next:
             os.write(f"{b.id + 1} {c.id + 1}\n")
-            self.traverse_blockchain(c, os, deepest_block, total_blocks)
+            deepest_block = self.traverse_blockchain(c, os, deepest_block, total_blocks)
+        return deepest_block
 
     # output the arrival times of blocks to os
     def export_arrival_times(self, os):
@@ -460,24 +478,24 @@ class Peer:
         #     print(f"{i[0].id} arrived at {i[1]} whose parent is {i[0].parent_id}")
         
 
-        os.write(f"{self.get_name()}\n")
+        os.write(f"{self.getName()}\n")
         for p in self.block_arrival_times:
             b, timestamp = p
-            os.write(f"{b.get_name()}, {b.depth}, {timestamp:.5f}, {('NO_PARENT' if b.parent is None else b.parent.get_name())}\n")
+            os.write(f"{b.getName()}, {b.depth}, {timestamp:.5f}, {('NO_PARENT' if b.parent is None else b.parent.getName())}\n")
         os.write("\n")
 
     # output the blockchain to a stream
     def export_blockchain(self, os):
         total_blocks = [0] * G.total_peers
         deepest_block = self.blockchain.genesis
-        self.traverse_blockchain(self.blockchain.genesis, os, deepest_block, total_blocks)
+        deepest_block = self.traverse_blockchain(self.blockchain.genesis, os, deepest_block, total_blocks)
 
     # output the final statistics to a file
     def export_stats(self, sim, os):
         fake = io.StringIO()
         deepest_block = self.blockchain.genesis
         total_blocks = [0] * G.total_peers
-        self.traverse_blockchain(self.blockchain.genesis, fake, deepest_block, total_blocks)
+        deepest_block = self.traverse_blockchain(self.blockchain.genesis, fake, deepest_block, total_blocks)
 
         blocks_in_chain = [0] * G.total_peers
         while deepest_block.id != self.blockchain.genesis.id:
@@ -486,5 +504,5 @@ class Peer:
 
         os.write("id,chain_blocks,generated_blocks,is_fast,hash_power\n")
         for i in range(G.total_peers):
-            os.write(f"{i + 1},{blocks_in_chain[i]},{total_blocks[i]},{int(self.is_fast)},{self.hash_power}\n")
+            os.write(f"{i + 1},{blocks_in_chain[i]},{total_blocks[i]},{int(G.peers[i].is_fast)},{G.peers[i].hash_power}\n")
 

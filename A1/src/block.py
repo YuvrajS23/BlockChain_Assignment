@@ -1,4 +1,5 @@
 from utils import *
+# Class for block
 class Block:
     def __init__(self, owner):
         self.owner = owner  # peer who mined this block
@@ -11,7 +12,7 @@ class Block:
         self.txns = []  # txns in this block
 
     # set id for this block and increment static counter
-    def set_id(self):
+    def setID(self):
         self.id = G.blk_counter
         G.blk_counter += 1
 
@@ -21,7 +22,7 @@ class Block:
         self.size += G.TRANSACTION_SIZE  # size of every txn = 1 KB
 
     # return name of current block
-    def get_name(self):
+    def getName(self):
         return "Blk" + str(self.id + 1)
 
     # return a copy of this block
@@ -31,27 +32,19 @@ class Block:
         ret.id = self.id
         ret.txns = self.txns[:]
         ret.parent_id = self.parent_id
-        ret.reset_parent()
+        ret.resetParent()
         ret.next = []
         return ret
 
     # set parent of this block to b
-    def set_parent(self, b):
+    def setParent(self, b):
         self.parent = b
         # b == None indicates genesis block
         self.parent_id = -2 if b is None else b.id
         self.depth = 0 if b is None else b.depth + 1
 
-    # set parent pointer to NULL
-    def reset_parent(self):
+    # set parent pointer to None
+    def resetParent(self):
         self.parent = None
         self.depth = -1
 
-
-# Example usage:
-# owner_ = some_owner_object
-# block = Block(owner_)
-# block.set_id()
-# txn = some_transaction_object
-# block.add(txn)
-# print(block.get_name())

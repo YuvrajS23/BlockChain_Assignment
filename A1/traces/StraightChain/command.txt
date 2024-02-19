@@ -1,0 +1,1 @@
+python3 src/main.py -n 30 -z0 0.5 -z1 0.3 -t 2000000 -Ttx 10000 -Tk 11000 -s 42 -txn 0 -blk 102 -v -it 0.05 -ib 0.01

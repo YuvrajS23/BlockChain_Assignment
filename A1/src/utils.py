@@ -4,11 +4,11 @@ class G:
     Ttx = 0
     # Tk: mean mining time of a block
     Tk = 0
-
+    # Defining HIGH_HASH_POWER to 10 times of LOW_HASH_POWER 
     LOW_HASH_POWER = 0.1
     HIGH_HASH_POWER = 1
 
-    MAX_BLOCK_SIZE = 1000
+    MAX_BLOCK_SIZE = 1024
 
     # Assuming TRANSACTION_SIZE is a constant
     TRANSACTION_SIZE = 1

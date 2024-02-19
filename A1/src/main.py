@@ -1,9 +1,5 @@
 import argparse
 import random
-import os
-from math import isclose
-from enum import Enum
-from itertools import cycle
 from simulator import *
 
 # Seed for random number generator
@@ -11,14 +7,11 @@ seed = 42
 random.seed(seed)
 
 # Create ArgumentParser
-argparser = argparse.ArgumentParser(description="./blockchain_simulator 1.0")
+argparser = argparse.ArgumentParser(description="BlockChain Simulator")
 
 # Add arguments
 argparser.add_argument("--peers", "-n", default=40, type=int, required=True,
                        help="Number of peers in the network")
-
-# argparser.add_argument("--edges", "-e", default=150, type=int, required=True,
-#                        help="Number of edges in the peer network")
 
 argparser.add_argument("--slowpeers", "-z0", default=0.4, type=float, required=True,
                        help="Fraction of slow peers in the network")
@@ -53,22 +46,11 @@ argparser.add_argument("--invalid_txn_prob", "-it", default=0.05, type=float, re
 argparser.add_argument("--invalid_block_prob", "-ib", default=0.05, type=float, required=True,
                        help="Probability of generating an invalid block")
 
-argparser.add_argument("--attacker_connection", "-zeta", default=0.5, type=float,
-                       help="Fraction of honest nodes adversary is connected to")
-
-argparser.add_argument("--alpha", "-a", default=0.35, type=float,
-                       help="Fraction of hash power belonging to attacker")
-
-argparser.add_argument("--adversary_type", "-adv", default="none", type=str,
-                       choices=["none", "selfish", "stubborn"],
-                       help="Type of adversary, choose from (none, selfish, stubborn)")
-
 # Parse arguments
 args = argparser.parse_args()
 
 # Extract arguments
 n = args.peers
-# edges = args.edges
 z0 = args.slowpeers
 z1 = args.lowhashpower
 t = args.time_limit
@@ -80,13 +62,10 @@ max_blocks = args.max_blocks
 verbose = args.verbose
 invalid_txn_prob = args.invalid_txn_prob
 invalid_block_prob = args.invalid_block_prob
-zeta = args.attacker_connection
-alpha = args.alpha
-adv = args.adversary_type
 
 # Set random seed
 random.seed(seed)
 
 # Create Simulator instance and run simulation
-simulator = Simulator(n, z0, z1, Ttx, Tk, verbose, invalid_txn_prob, invalid_block_prob, zeta, adv, alpha)
+simulator = Simulator(n, z0, z1, Ttx, Tk, verbose, invalid_txn_prob, invalid_block_prob)
 simulator.run(t, max_txns, max_blocks)

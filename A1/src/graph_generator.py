@@ -1,7 +1,8 @@
 import networkx as nx
 import random
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
+# Generate a random connected graph with num_nodes nodes and return the edge list
 def generate_random_graph(num_nodes):
     # Create an empty graph
     graph = nx.Graph()
@@ -19,12 +20,13 @@ def generate_random_graph(num_nodes):
 
 
 # Visualize the random graph
-def show_random_graph(random_graph):
-    num_edges = random_graph.number_of_edges()
-    print(num_edges)
-    # Visualize the graph (optional)
-    pos = nx.spring_layout(random_graph)
-    nx.draw(random_graph, pos, with_labels=True, node_size=100, node_color='skyblue', font_size=8, font_color='black', font_weight='bold', edge_color='gray')
-    plt.show()
+# Just for checking actual graph generator in visualize.py
+# def show_random_graph(random_graph):
+#     num_edges = random_graph.number_of_edges()
+#     print(num_edges)
+#     # Visualize the graph (optional)
+#     pos = nx.spring_layout(random_graph)
+#     nx.draw(random_graph, pos, with_labels=True, node_size=100, node_color='skyblue', font_size=8, font_color='black', font_weight='bold', edge_color='gray')
+#     plt.show()
 
 

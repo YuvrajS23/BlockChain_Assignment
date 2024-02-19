@@ -1,4 +1,5 @@
 from utils import *
+# Class for BlockChain
 class Blockchain:
     def __init__(self):
         # initialize every blockchain with a copy of genesis block
@@ -23,11 +24,3 @@ class Blockchain:
         balances[b.owner.id] -= G.MINING_FEE
         return b.parent
 
-
-# Example usage:
-# blockchain = Blockchain()
-# block = some_block_object
-# blockchain.add(block)
-# balances = [0, 0, 0]  # Assuming there are 3 peers
-# txns = []
-# new_block = blockchain.backward(block, balances, txns)
