@@ -22,5 +22,5 @@ class Blockchain:
             balances[txn.receiver.id] -= txn.amount
             txns.append(txn)
         balances[b.owner.id] -= G.MINING_FEE
-        return b.parent
+        return b.parent, balances, txns
 

@@ -46,6 +46,12 @@ argparser.add_argument("--invalid_txn_prob", "-it", default=0.05, type=float, re
 argparser.add_argument("--invalid_block_prob", "-ib", default=0.05, type=float, required=True,
                        help="Probability of generating an invalid block")
 
+argparser.add_argument("--alpha1", "-a1", default=0.30, type=float, required=True,
+                       help="Fraction of hash power belonging to attacker 1")
+
+argparser.add_argument("--alpha2", "-a2", default=0.30, type=float, required=True,
+                       help="Fraction of hash power belonging to attacker 2")
+
 # Parse arguments
 args = argparser.parse_args()
 
@@ -62,10 +68,12 @@ max_blocks = args.max_blocks
 verbose = args.verbose
 invalid_txn_prob = args.invalid_txn_prob
 invalid_block_prob = args.invalid_block_prob
+alpha1 = args.alpha1
+alpha2 = args.alpha2
 
 # Set random seed
 random.seed(seed)
 
 # Create Simulator instance and run simulation
-simulator = Simulator(n, z0, z1, Ttx, Tk, verbose, invalid_txn_prob, invalid_block_prob)
+simulator = Simulator(n, z0, z1, Ttx, Tk, verbose, invalid_txn_prob, invalid_block_prob, alpha1, alpha2)
 simulator.run(t, max_txns, max_blocks)

@@ -8,7 +8,7 @@ class SelfishAttacker(Peer):
 
     def generate_new_block(self, sim):
         block = Block(self)
-        block.set_parent(self.blockchain.current_block)
+        block.setParent(self.blockchain.current_block)
         balances_copy = self.balances.copy()
         for txn in self.txn_pool:
             if block.size + G.TRANSACTION_SIZE > G.max_size:
@@ -41,21 +41,25 @@ class SelfishAttacker(Peer):
         self.schedule_next_block(sim)
 
     def receive_block(self, sim, sender, block):
-        chain_it, free_it, reject_it = self.chain_blocks.find(block.id), self.free_blocks.find(block.id), self.rejected_blocks.find(block.id)
-
-        if chain_it is not None or free_it is not None or reject_it is not None:
+        chain_it = block.id in self.chain_blocks.keys()
+        free_it = block.id in self.free_blocks.keys()
+        reject_it = block.id in self.rejected_blocks
+        if chain_it or free_it or reject_it:
             return
 
         self.block_arrival_times.append((block, sim.current_timestamp))
 
-        chain_it = self.chain_blocks.find(block.parent_id)
+        chain_it = block.parent_id in self.chain_blocks.keys()
 
-        if chain_it is None:
+        if not chain_it:
             self.free_blocks[block.id] = block
-            self.free_block_parents[block.parent_id].append(block)
+            if block.parent_id in self.free_block_parents.keys():
+                self.free_block_parents[block.parent_id].append(block)
+            else:
+                self.free_block_parents[block.parent_id] = [block]
             return
 
-        block.set_parent(chain_it.second)
+        block.setParent(self.chain_blocks[block.parent_id])
 
         current_block = self.blockchain.current_block
         branch_block = block.parent
@@ -63,23 +67,24 @@ class SelfishAttacker(Peer):
         current_balance_change = [0] * G.total_peers
         txns_to_add = []
         while current_block.depth > branch_block.depth:
-            current_block, current_balance_change, txns_to_add = Blockchain.backward(current_block, current_balance_change, txns_to_add)
+            current_block, current_balance_change, txns_to_add = self.blockchain.backward(current_block, current_balance_change, txns_to_add)
 
         branch_balance_change = [0] * G.total_peers
         txns_to_remove = []
         while branch_block.depth > current_block.depth:
-            branch_block, branch_balance_change, txns_to_remove = Blockchain.backward(branch_block, branch_balance_change, txns_to_remove)
+            branch_block, branch_balance_change, txns_to_remove = self.blockchain.backward(branch_block, branch_balance_change, txns_to_remove)
 
         while branch_block.id != current_block.id:
-            current_block, branch_block = Blockchain.backward(current_block, current_balance_change, txns_to_add), Blockchain.backward(branch_block, branch_balance_change, txns_to_remove)
+            current_block, current_balance_change, txns_to_add = self.blockchain.backward(current_block, current_balance_change, txns_to_add)
+            branch_block, branch_balance_change, txns_to_remove = self.blockchain.backward(branch_block, branch_balance_change, txns_to_remove)
 
         for i in range(G.total_peers):
-            current_balance_change[i] += balances[i] - branch_balance_change[i]
+            current_balance_change[i] += self.balances[i] - branch_balance_change[i]
 
         blocks_to_add = set()
         deepest_block = None
 
-        self.free_blocks_dfs(block, current_balance_change, blocks_to_add, deepest_block, sim)
+        deepest_block = self.free_blocks_dfs(block, current_balance_change, blocks_to_add, deepest_block, sim)
 
         if deepest_block is None:
             return
@@ -87,18 +92,18 @@ class SelfishAttacker(Peer):
         if deepest_block.depth == self.blockchain.current_block.depth:
             private_block = self.blockchain.current_block
             while private_block.depth >= block.depth:
-                sim.log("Attacker broadcasts block " + private_block.get_name())
+                sim.log("Attacker broadcasts block " + private_block.getName())
                 ev = ForwardBlock(0, self, self, private_block.clone())
                 sim.add_event(ev)
                 private_block = private_block.parent
-
+            self.state_0_prime = True
             for b in blocks_to_add:
                 self.add_block(b, False)
         elif deepest_block.depth + 1 == self.blockchain.current_block.depth:
             private_block = self.blockchain.current_block
             while private_block.depth >= block.depth:
                 if private_block.depth <= deepest_block.depth:
-                    sim.log("Attacker broadcasts block " + private_block.get_name())
+                    sim.log("Attacker broadcasts block " + private_block.getName())
                     ev = ForwardBlock(0, self, self, private_block.clone())
                     sim.add_event(ev)
                 private_block = private_block.parent
@@ -109,7 +114,7 @@ class SelfishAttacker(Peer):
             private_block = self.blockchain.current_block
             while private_block.depth >= block.depth:
                 if private_block.depth <= deepest_block.depth:
-                    sim.log("Attacker broadcasts block " + private_block.get_name())
+                    sim.log("Attacker broadcasts block " + private_block.getName())
                     ev = ForwardBlock(0, self, self, private_block.clone())
                     sim.add_event(ev)
                 private_block = private_block.parent

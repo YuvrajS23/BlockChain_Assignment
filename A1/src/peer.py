@@ -393,18 +393,18 @@ class Peer:
         txns_to_add = []
         # find lca
         while current_block.depth > branch_block.depth:
-            current_block = self.blockchain.backward(current_block, current_balance_change, txns_to_add)
+            current_block, current_balance_change, txns_to_add = self.blockchain.backward(current_block, current_balance_change, txns_to_add)
 
         # balances to update in case longest chain changes
         branch_balance_change = [0] * G.total_peers
         # txns to remove from the txn pool in case longest chain changes
         txns_to_remove = []
         while branch_block.depth > current_block.depth:
-            branch_block = self.blockchain.backward(branch_block, branch_balance_change, txns_to_remove)
+            branch_block, branch_balance_change, txns_to_remove = self.blockchain.backward(branch_block, branch_balance_change, txns_to_remove)
 
         while branch_block.id != current_block.id:
-            current_block = self.blockchain.backward(current_block, current_balance_change, txns_to_add)
-            branch_block = self.blockchain.backward(branch_block, branch_balance_change, txns_to_remove)
+            current_block, current_balance_change, txns_to_add = self.blockchain.backward(current_block, current_balance_change, txns_to_add)
+            branch_block, branch_balance_change, txns_to_remove = self.blockchain.backward(branch_block, branch_balance_change, txns_to_remove)
 
         # current_balance_change = balances just before block insertion point
         for i in range(G.total_peers):

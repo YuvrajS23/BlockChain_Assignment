@@ -11,11 +11,12 @@ from blockchain import *
 from event import *
 from utils import *
 from graph_generator import *
+from attacker import *
 
 # Class Simulator simulates the running of the blockchain network among peers
 class Simulator:
     # Initializing values at the start of simulation
-    def __init__(self, n_, z0_, z1_, Ttx_, Tk_, verbose_, invalid_txn_prob_, invalid_block_prob_):
+    def __init__(self, n_, z0_, z1_, Ttx_, Tk_, verbose_, invalid_txn_prob_, invalid_block_prob_, alpha1_, alpha2_):
         self.n = n_
         self.z0 = min(1.0, max(z0_, 0.0))
         self.slow_peers = int(self.z0 * self.n)
@@ -28,6 +29,8 @@ class Simulator:
         self.invalid_block_prob = invalid_block_prob_
         self.verbose = verbose_
         self.has_simulation_ended = False
+        self.alpha1 = alpha1_
+        self.alpha2 = alpha2_
         G.global_genesis = Block(None)
         G.global_genesis.setParent(None)
         G.total_peers = self.n
@@ -48,13 +51,13 @@ class Simulator:
 
     # Generate self.n new peers and initialize the properly with appropriate link speeds and hash powers
     def get_new_peers(self):
-
-        G.peers = [Peer() for _ in range(self.n)]
+        if(self.n >= 2):
+            G.peers = [Peer() for _ in range(self.n-2)]
         # print(G.peers[5].id)
 
         for i in range(self.slow_peers):
             G.peers[i].is_fast = False
-        for i in range(self.slow_peers, self.n):
+        for i in range(self.slow_peers, self.n-2):
             G.peers[i].is_fast = True
 
 
@@ -63,8 +66,22 @@ class Simulator:
         # print([G.peers[k].is_fast for k in range(self.n)])
         for i in range(self.lowhashpower):
             G.peers[i].hash_power = G.LOW_HASH_POWER
-        for i in range(self.lowhashpower, self.n):
+        for i in range(self.lowhashpower, self.n-2):
             G.peers[i].hash_power = G.HIGH_HASH_POWER
+
+        for i in range(2):
+            G.peers.append(SelfishAttacker())
+            G.peers[len(G.peers)-1].is_fast = True
+        
+        alpha = self.alpha1 + self.alpha2
+        sumHonestHash = 0
+        for i in range(self.n-2):
+            sumHonestHash += G.peers[i].hash_power
+        attackersHash = sumHonestHash * alpha / (1 - alpha)
+        att1Hash = attackersHash * self.alpha1 / alpha
+        att2Hash = attackersHash - att1Hash
+        G.peers[self.n-2].hash_power = att1Hash
+        G.peers[self.n-1].hash_power = att2Hash
 
         normalization_factor = sum(p.hash_power for p in G.peers)
         for p in G.peers:
