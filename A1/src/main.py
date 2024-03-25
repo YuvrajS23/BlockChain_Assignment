@@ -3,8 +3,8 @@ import random
 from simulator import *
 
 # Seed for random number generator
-seed = 42
-random.seed(seed)
+# seed = 42
+# random.seed(seed)
 
 # Create ArgumentParser
 argparser = argparse.ArgumentParser(description="BlockChain Simulator")
@@ -17,7 +17,7 @@ argparser.add_argument("--slowpeers", "-z0", default=0.4, type=float, required=T
                        help="Fraction of slow peers in the network")
 
 argparser.add_argument("--lowhashpower", "-z1", default=0.4, type=float, required=True,
-                       help="Fraction of slow peers in the network")
+                       help="Fraction of low hash power peers in the network")
 
 argparser.add_argument("--time_limit", "-t", default=float('inf'), type=float, required=True,
                        help="Run the simulation up to a time limit (in seconds)")
@@ -27,9 +27,6 @@ argparser.add_argument("--txn_interarrival", "-Ttx", default=40, type=float, req
 
 argparser.add_argument("--mining_time", "-Tk", default=1000.0, type=float, required=True,
                        help="Mean of exponential distribution of time to mine a block")
-
-argparser.add_argument("--seed", "-s", default=seed, type=int, required=True,
-                       help="Seed for random number generator")
 
 argparser.add_argument("--max_txns", "-txn", default=0, type=int, required=True,
                        help="Run simulation till max transactions are generated, 0 indicates infinity")
@@ -62,7 +59,6 @@ z1 = args.lowhashpower
 t = args.time_limit
 Ttx = args.txn_interarrival
 Tk = args.mining_time
-seed = args.seed
 max_txns = args.max_txns
 max_blocks = args.max_blocks
 verbose = args.verbose
@@ -71,8 +67,6 @@ invalid_block_prob = args.invalid_block_prob
 alpha1 = args.alpha1
 alpha2 = args.alpha2
 
-# Set random seed
-random.seed(seed)
 
 # Create Simulator instance and run simulation
 simulator = Simulator(n, z0, z1, Ttx, Tk, verbose, invalid_txn_prob, invalid_block_prob, alpha1, alpha2)

@@ -4,6 +4,7 @@ matplotlib.use('Agg')
 from matplotlib import style
 import matplotlib.pyplot as plt
 import networkx as nx
+import pydot
 from networkx.drawing.nx_pydot import graphviz_layout
 from os.path import dirname, abspath
 import pandas as pd
@@ -38,8 +39,9 @@ def draw_peer_network(file, adversary=True):
         edges = [l.strip().split() for l in fp.readlines() if l.strip()]
         edges = [(int(u), int(v)) for u, v in edges]
     G = nx.Graph(edges)
-    adversary = max(G.nodes()) if adversary else -1
-    colours = [('darkred' if v == adversary else '#1f78b4') for v in G.nodes()]
+    adversary2 = max(G.nodes()) if adversary else -1
+    adversary1 = adversary2 - 1
+    colours = [('darkred' if (v == adversary2 or v == adversary1) else '#1f78b4') for v in G.nodes()]
     pos = graphviz_layout(G, prog="circo")
     filename = file.replace('_edgelist.txt', '_img.png')
     nx.draw(G, pos, 
@@ -95,8 +97,9 @@ draw_peer_network(network_file)
 peer = int(sys.argv[1]) if len(sys.argv) > 1 else -1
 num_peers = len(os.listdir(os.path.join(base, 'block_arrivals')))
 peer = (peer % num_peers + num_peers) % num_peers
-peer = f'Peer{peer + 1}.txt'
-adversary = num_peers
+peer = f'Peer{num_peers-2}.txt'
+adversary2 = num_peers
+adversary1 = num_peers - 1
 
 for folder in ['final_blockchains', 'termination_blockchains']:
     path = os.path.join(base, folder, peer)
@@ -111,11 +114,11 @@ max_depth, branch_lengths = calc_graph_stats(G)
 print('Total blocks in Blockchain:', len(G.nodes()))
 print('Longest chain length:', max_depth)
 print('Longest chain length / total number of blocks: %.3f' % (max_depth / len(G.nodes())))
-if len(branch_lengths) > 0:
-    print(f'Branch Lengths: Total={len(branch_lengths)}, Max={branch_lengths.max()}, Mean={branch_lengths.mean():.3f}, Min={branch_lengths.min()}')
-else:
-    print('No branches created')
-print()
+# if len(branch_lengths) > 0:
+#     print(f'Branch Lengths: Total={len(branch_lengths)}, Max={branch_lengths.max()}, Mean={branch_lengths.mean():.3f}, Min={branch_lengths.min()}')
+# else:
+#     print('No branches created')
+# print()
 
 stat_file = os.path.join(base, 'peer_stats', peer)
 df = pd.read_csv(stat_file, index_col='id')
@@ -123,13 +126,40 @@ df = pd.read_csv(stat_file, index_col='id')
 total_blocks = df['generated_blocks'].sum()
 total_blocks_in_chain = df['chain_blocks'].sum()
 total_hash_power = df['hash_power'].sum()
+adversary_stats = df.loc[adversary2].copy()
+ad = df.loc[adversary1].copy()
+alpha2 = round(adversary_stats['hash_power'] / total_hash_power, 2)
+alpha1 = round(ad['hash_power'] / total_hash_power, 2)
+
+mpu_adv2 = adversary_stats['chain_blocks'] / adversary_stats['generated_blocks']
+mpu_adv1 = ad['chain_blocks'] / ad['generated_blocks']
+rpool2 = adversary_stats['chain_blocks'] / total_blocks_in_chain
+rpool1 = ad['chain_blocks'] / total_blocks_in_chain
 mpu_overall = total_blocks_in_chain / total_blocks
 
-for hash_pwr_is_fast, grp_df in df.groupby(['hash_power', 'is_fast']):
-    hash_pwr, is_fast = hash_pwr_is_fast
-    hash_pwr = 'HIGH' if grp_df['hash_power'].mean() >= df['hash_power'].mean() else 'LOW'
-    mean_frac = grp_df['chain_blocks'].divide(grp_df['generated_blocks']).mean()
-    print(f'Hash power: {hash_pwr}, Fast Node? {bool(is_fast)}, Mean fraction of blocks: {mean_frac:.3f}')
+num1 = adversary_stats['chain_blocks']
+num2 = ad['chain_blocks']
+num3 = adversary_stats['generated_blocks']
+num4 = ad['generated_blocks']
+print(f'{num1} and {num2}')
+print(f'{num3} and {num4}')
+print(f'Alpha1 = {alpha1:.2f}')
+print(f'Alpha2 = {alpha2:.2f}')
+print(f'MPU_adv1 = {mpu_adv1:.5f}')
+print(f'MPU_adv2 = {mpu_adv2:.5f}')
+print(f'MPU_overall = {mpu_overall:.5f}')
+print(f'Gamma_0_1 = {R_pool(alpha1, 0):.5f}')
+print(f'Gamma_1_2 = {R_pool(alpha1, 1):.5f}')
+print(f'Gamma_0_2 = {R_pool(alpha2, 0):.5f}')
+print(f'Gamma_1_2 = {R_pool(alpha2, 1):.5f}')
+print(f'R_pool1 = {rpool1:.5f}')
+print(f'R_pool2 = {rpool2:.5f}')
+
+# for hash_pwr_is_fast, grp_df in df.groupby(['hash_power', 'is_fast']):
+#     hash_pwr, is_fast = hash_pwr_is_fast
+#     hash_pwr = 'HIGH' if grp_df['hash_power'].mean() > df['hash_power'].mean() else 'LOW'
+#     mean_frac = grp_df['chain_blocks'].divide(grp_df['generated_blocks']).fillna(0).mean()
+#     print(f'Hash power: {hash_pwr}, Fast Node? {bool(is_fast)}, Mean fraction of blocks: {mean_frac:.3f}')
 
 df = df.sort_values(by='hash_power').reset_index(drop=True)
 fraction_blocks_in_chain = df['chain_blocks'].to_numpy() / total_blocks_in_chain

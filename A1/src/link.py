@@ -8,14 +8,13 @@ class Link:
         # 100Mbps = 12500KBps
         # c: link rate 
         self.c = 12500 if (peer.is_fast and is_fast) else 625  # KBps
-        # exponential distribution with mean 96kbits/c = 12KB/c , lambda = c/12
-        self.exp = random.expovariate(1 / (self.c / 12))
         # ro chosen from uniform distribution between 10ms and 500ms
         # ro: speed of light propagation delay
         self.ro = random.uniform(0.01, 0.5)
 
     # returns the delay for a message of size length KB
     def get_delay(self, length):
-        d = self.exp
+        # exponential distribution with mean 96kbits/c = 12KB/c , lambda = c/12
+        d = random.expovariate(1 / (self.c / 12))
         return self.ro + length / self.c + d
 

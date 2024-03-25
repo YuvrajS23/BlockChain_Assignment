@@ -67,7 +67,11 @@ class Peer:
         self.hash_power = hash_power
         # print(f"{self.id + 1} has hash power {self.hash_power}")
         # more hash power: less G.Tk
-        self.block_mining_time = random.expovariate(hash_power / G.Tk)
+        if self.hash_power > 0.00001:
+            # print(self.hash_power)
+            self.block_mining_time = random.expovariate(hash_power / G.Tk)
+        else:
+            self.block_mining_time = G.INT_MAX
 
     # returns the name of this peer
     def getName(self):
@@ -97,7 +101,7 @@ class Peer:
 
     # schedules the next txn and adds it to the event queue
     def schedule_next_transaction(self, sim):
-        interArrivalTime = self.txn_interarrival_time
+        interArrivalTime = random.expovariate(1.0 / G.Ttx)
         ev = GenerateTransaction(interArrivalTime, self)
         sim.add_event(ev)
 
@@ -223,7 +227,10 @@ class Peer:
     # Schedules next mining event
     def schedule_next_block(self, sim):
         self.next_mining_block = self.generate_new_block(sim)
-        miningTime = random.expovariate(self.hash_power / G.Tk)
+        if self.hash_power > 0.00001:
+            miningTime = random.expovariate(self.hash_power / G.Tk)
+        else:
+            miningTime = G.INT_MAX
         self.next_mining_event = BroadcastMinedBlock(miningTime, self)
         sim.add_event(self.next_mining_event)
 
@@ -393,18 +400,18 @@ class Peer:
         txns_to_add = []
         # find lca
         while current_block.depth > branch_block.depth:
-            current_block, current_balance_change, txns_to_add = self.blockchain.backward(current_block, current_balance_change, txns_to_add)
+            current_block = self.blockchain.backward(current_block, current_balance_change, txns_to_add)
 
         # balances to update in case longest chain changes
         branch_balance_change = [0] * G.total_peers
         # txns to remove from the txn pool in case longest chain changes
         txns_to_remove = []
         while branch_block.depth > current_block.depth:
-            branch_block, branch_balance_change, txns_to_remove = self.blockchain.backward(branch_block, branch_balance_change, txns_to_remove)
+            branch_block = self.blockchain.backward(branch_block, branch_balance_change, txns_to_remove)
 
         while branch_block.id != current_block.id:
-            current_block, current_balance_change, txns_to_add = self.blockchain.backward(current_block, current_balance_change, txns_to_add)
-            branch_block, branch_balance_change, txns_to_remove = self.blockchain.backward(branch_block, branch_balance_change, txns_to_remove)
+            current_block = self.blockchain.backward(current_block, current_balance_change, txns_to_add)
+            branch_block = self.blockchain.backward(branch_block, branch_balance_change, txns_to_remove)
 
         # current_balance_change = balances just before block insertion point
         for i in range(G.total_peers):
