@@ -12,7 +12,7 @@ from event import *
 from utils import *
 from graph_generator import *
 from attacker import *
-
+random.seed(60)
 # Class Simulator simulates the running of the blockchain network among peers
 class Simulator:
     # Initializing values at the start of simulation
@@ -29,8 +29,8 @@ class Simulator:
         self.invalid_block_prob = invalid_block_prob_
         self.verbose = verbose_
         self.has_simulation_ended = False
-        self.alpha1 = alpha1_
-        self.alpha2 = alpha2_
+        self.alpha1 = alpha1_   # Hash fraction of Attacker 1
+        self.alpha2 = alpha2_   # Hash fraction of Attacker 2
         G.global_genesis = Block(None)
         G.global_genesis.setParent(None)
         G.total_peers = self.n
@@ -51,6 +51,7 @@ class Simulator:
 
     # Generate self.n new peers and initialize the properly with appropriate link speeds and hash powers
     def get_new_peers(self):
+        # Get n-2 peers at first
         if(self.n >= 2):
             G.peers = [Peer() for _ in range(self.n-2)]
         # print(G.peers[5].id)
@@ -69,10 +70,12 @@ class Simulator:
         for i in range(self.lowhashpower, self.n-2):
             G.peers[i].hash_power = G.HIGH_HASH_POWER
 
+        # Add the last two peers as attacker
         for i in range(2):
             G.peers.append(SelfishAttacker())
             G.peers[len(G.peers)-1].is_fast = True
         
+        # Initialize attacker's hash power
         alpha = self.alpha1 + self.alpha2
         sumHonestHash = 0
         for i in range(self.n-2):

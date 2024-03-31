@@ -3,8 +3,8 @@ import random
 from simulator import *
 
 # Seed for random number generator
-# seed = 42
-# random.seed(seed)
+seed = 60
+random.seed(seed)
 
 # Create ArgumentParser
 argparser = argparse.ArgumentParser(description="BlockChain Simulator")

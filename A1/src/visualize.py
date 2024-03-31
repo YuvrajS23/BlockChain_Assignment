@@ -97,7 +97,7 @@ draw_peer_network(network_file)
 peer = int(sys.argv[1]) if len(sys.argv) > 1 else -1
 num_peers = len(os.listdir(os.path.join(base, 'block_arrivals')))
 peer = (peer % num_peers + num_peers) % num_peers
-peer = f'Peer{num_peers-2}.txt'
+peer = f'Peer{num_peers-5}.txt'
 adversary2 = num_peers
 adversary1 = num_peers - 1
 
@@ -148,10 +148,6 @@ print(f'Alpha2 = {alpha2:.2f}')
 print(f'MPU_adv1 = {mpu_adv1:.5f}')
 print(f'MPU_adv2 = {mpu_adv2:.5f}')
 print(f'MPU_overall = {mpu_overall:.5f}')
-print(f'Gamma_0_1 = {R_pool(alpha1, 0):.5f}')
-print(f'Gamma_1_2 = {R_pool(alpha1, 1):.5f}')
-print(f'Gamma_0_2 = {R_pool(alpha2, 0):.5f}')
-print(f'Gamma_1_2 = {R_pool(alpha2, 1):.5f}')
 print(f'R_pool1 = {rpool1:.5f}')
 print(f'R_pool2 = {rpool2:.5f}')
 

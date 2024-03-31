@@ -1,4 +1,5 @@
 import random
+random.seed(60)
 # Class for Link
 class Link:
     def __init__(self, peer, is_fast):

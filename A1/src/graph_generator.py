@@ -1,6 +1,7 @@
 import networkx as nx
 import random
 # import matplotlib.pyplot as plt
+random.seed(60)
 
 # Generate a random connected graph with num_nodes nodes and return the edge list
 def generate_random_graph(num_nodes):

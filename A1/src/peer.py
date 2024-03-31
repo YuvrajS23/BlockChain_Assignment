@@ -6,7 +6,7 @@ from blockchain import Blockchain
 from event import *
 from link import *
 from utils import *
-
+random.seed(60)
 # Class simulating the characteristics of a peer
 class Peer:
     def __init__(self):
