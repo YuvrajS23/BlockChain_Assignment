@@ -2,7 +2,6 @@
 By
 - Khushi Gondane (210050056)
 - Yuvraj Singh (210050172)
-- Shrey Modi (200020135)
 
 ### Command for running
 > python3 main.py -n 'numpeers' -z0 '%slowpeers' -z1 '%lowhashpeers' -t 'time_limit' -Ttx 'txn_interarrival_time' -Tk 'mining_time' -s 'seed' -txn 'max_txns' -blk 'max_blks' -v -it 'prob_invalid_txns' -ib 'prob_invalid_blks'
